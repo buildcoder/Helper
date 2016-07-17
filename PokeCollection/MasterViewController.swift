@@ -20,13 +20,88 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
         // Do any additional setup after loading the view, typically from a nib.
         self.navigationItem.leftBarButtonItem = self.editButtonItem()
 
-        let addButton = UIBarButtonItem(barButtonSystemItem: .Add, target: self, action: #selector(insertNewObject(_:)))
-        self.navigationItem.rightBarButtonItem = addButton
+        //let addButton = UIBarButtonItem(barButtonSystemItem: .Add, target: self, action: #selector(insertNewObject(_:)))
+        //self.navigationItem.rightBarButtonItem = addButton
+        
+        //get_data_from_url("http://www.kaleidosblog.com/tutorial/tutorial.json")
+        get_data_from_url("http://www.buildcoders.com/pokemon.json")
+        
         if let split = self.splitViewController {
             let controllers = split.viewControllers
             self.detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
         }
     }
+    
+    
+    
+    func get_data_from_url(url:String)
+    {
+        let httpMethod = "GET"
+        let timeout = 15
+        let url = NSURL(string: url)
+        let urlRequest = NSMutableURLRequest(URL: url!,
+                                             cachePolicy: .ReloadIgnoringLocalAndRemoteCacheData,
+                                             timeoutInterval: 15.0)
+        let queue = NSOperationQueue()
+        NSURLConnection.sendAsynchronousRequest(
+            urlRequest,
+            queue: queue,
+            completionHandler: {(response: NSURLResponse?,
+                data: NSData?,
+                error: NSError?) in
+                if data!.length > 0 && error == nil{
+                    self.extract_json(data!)
+                }else if data!.length == 0 && error == nil{
+                    print("Nothing was downloaded")
+                } else if error != nil{
+                    print("Error happened = \(error)")
+                }
+            }
+        )
+    }
+    
+    
+    func extract_json(jsonData:NSData?)
+    {
+        guard let nonNilJsonData = jsonData,
+            let json = try? NSJSONSerialization.JSONObjectWithData(nonNilJsonData, options: []),
+            var _pokemon_list = json as? Array<NSDictionary>
+            else {
+                return
+        }
+        
+        
+        print(_pokemon_list.count)
+        
+        for i in (0 ..< _pokemon_list.count )
+        {
+            if let pokemon_obj = _pokemon_list[i] as? NSDictionary
+            {
+                if let pokemon_name = pokemon_obj["pokemon"] as? String
+                {
+                    if let pokemon_code = pokemon_obj["code"] as? String
+                    {
+                        insertNewObject("[" + pokemon_code + "] " + pokemon_name)
+                    }
+                }
+            }
+            
+        }
+
+
+        do_table_refresh();
+    }
+    
+    func do_table_refresh()
+    {
+        dispatch_async(dispatch_get_main_queue(), {
+            self.tableView.reloadData()
+            return
+        })
+    }
+    
+    
+    
 
     override func viewWillAppear(animated: Bool) {
         self.clearsSelectionOnViewWillAppear = self.splitViewController!.collapsed
@@ -45,8 +120,9 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
              
         // If appropriate, configure the new managed object.
         // Normally you should use accessor methods, but using KVC here avoids the need to add a custom class to the template.
-        newManagedObject.setValue(NSDate(), forKey: "timeStamp")
-             
+        //newManagedObject.setValue(NSDate(), forKey: "timeStamp")
+        newManagedObject.setValue(sender, forKey: "pokemon")
+        /*
         // Save the context.
         do {
             try context.save()
@@ -56,6 +132,7 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
             //print("Unresolved error \(error), \(error.userInfo)")
             abort()
         }
+         */
     }
 
     // MARK: - Segues
@@ -75,7 +152,8 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
     // MARK: - Table View
 
     override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        return self.fetchedResultsController.sections?.count ?? 0
+        //return self.fetchedResultsController.sections?.count ?? 0
+        return 1
     }
 
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -112,7 +190,7 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
     }
 
     func configureCell(cell: UITableViewCell, withObject object: NSManagedObject) {
-        cell.textLabel!.text = object.valueForKey("timeStamp")!.description
+        cell.textLabel!.text = object.valueForKey("pokemon")!.description
     }
 
     // MARK: - Fetched results controller
@@ -131,7 +209,7 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
         fetchRequest.fetchBatchSize = 20
         
         // Edit the sort key as appropriate.
-        let sortDescriptor = NSSortDescriptor(key: "timeStamp", ascending: false)
+        let sortDescriptor = NSSortDescriptor(key: "pokemon", ascending: true)
         
         fetchRequest.sortDescriptors = [sortDescriptor]
         

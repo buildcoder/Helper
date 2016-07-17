@@ -296,6 +296,7 @@
 				6D5591B11D3A87040099CADE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 
